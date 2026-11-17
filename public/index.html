@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Notes</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 30px 15px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #5b4bdb;
+        }
+
+        .form, .note {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 10px #00000010;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background: #5b4bdb;
+            color: white;
+            border: none;
+            padding: 11px 18px;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        button:hover { opacity: 0.85; }
+
+        .delete {
+            background: #e74c3c;
+            margin-top: 10px;
+        }
+
+        .note h3 { margin-top: 0; }
+        .note p { white-space: pre-wrap; overflow-wrap: anywhere; }
+        #message { text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Quick Notes</h1>
+        <p style="text-align:center">Create and manage your notes easily!</p>
+
+        <div class="form">
+            <h2>Create a Note</h2>
+            <input id="title" type="text" placeholder="Enter note title">
+            <textarea id="content" placeholder="Write your note here..."></textarea>
+            <button onclick="addNote()">Add Note</button>
+        </div>
+
+        <p id="message"></p>
+        <h2>Your Notes</h2>
+        <div id="notes"></div>
+    </div>
+
+    <script>
+        async function loadNotes() {
+            const container = document.getElementById("notes");
+
+            try {
+                const response = await fetch("/notes");
+                if (!response.ok) throw new Error("Could not load notes");
+
+                const notes = await response.json();
+                container.innerHTML = "";
+
+                if (!notes.length) {
+                    container.textContent = "No notes yet. Create your first note!";
+                    return;
+                }
+
+                notes.forEach(note => {
+                    const card = document.createElement("div");
+                    card.className = "note";
+
+                    const heading = document.createElement("h3");
+                    heading.textContent = note.title;
+
+                    const paragraph = document.createElement("p");
+                    paragraph.textContent = note.content;
+
+                    const button = document.createElement("button");
+                    button.className = "delete";
+                    button.textContent = "Delete";
+                    button.onclick = () => deleteNote(note.id);
+
+                    card.append(heading, paragraph, button);
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                container.textContent = "Unable to load notes. Please refresh the page.";
+            }
+        }
+
+        async function addNote() {
+            const title = document.getElementById("title").value.trim();
+            const content = document.getElementById("content").value.trim();
+            const message = document.getElementById("message");
+
+            if (!title || !content) {
+                message.textContent = "Please enter both title and content.";
+                return;
+            }
+
+            try {
+                const response = await fetch("/notes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title, content })
+                });
+
+                if (!response.ok) throw new Error("Could not save note");
+
+                document.getElementById("title").value = "";
+                document.getElementById("content").value = "";
+                message.textContent = "Note added successfully!";
+                loadNotes();
+            } catch (error) {
+                message.textContent = "Unable to add note. Please try again.";
+            }
+        }
+
+        async function deleteNote(id) {
+            try {
+                const response = await fetch("/notes/" + encodeURIComponent(id), {
+                    method: "DELETE"
+                });
+
+                if (!response.ok) throw new Error("Could not delete note");
+
+                document.getElementById("message").textContent = "Note deleted!";
+                loadNotes();
+            } catch (error) {
+                document.getElementById("message").textContent = "Unable to delete note.";
+            }
+        }
+
+        loadNotes();
+    </script>
+</body>
+</html>
