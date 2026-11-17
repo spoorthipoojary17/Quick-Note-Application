@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Notes</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f5ff;
+            margin: 0;
+            padding: 30px 15px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #5145cd;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #777;
+            margin-bottom: 30px;
+        }
+
+        .note-form {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px #00000010;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 13px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        button {
+            background: #6255df;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #483bbd;
+        }
+
+        .notes-list {
+            margin-top: 30px;
+        }
+
+        .note {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px #00000008;
+        }
+
+        .note h3 {
+            color: #5145cd;
+            margin-top: 0;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            margin-top: 10px;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+
+        #message {
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>📝 Quick Notes</h1>
+    <p class="subtitle">Write your thoughts. Save your ideas.</p>
+
+    <div class="note-form">
+        <input type="text" id="title" placeholder="Enter note title">
+
+        <textarea id="content"
+            placeholder="Write your note here..."></textarea>
+
+        <button onclick="addNote()">+ Add Note</button>
+    </div>
+
+    <p id="message"></p>
+
+    <div class="notes-list">
+        <h2>My Notes</h2>
+        <div id="notes"></div>
+    </div>
+
+</div>
+
+<script>
+    const API_URL = "/notes";
+
+    // Display all notes
+    async function loadNotes() {
+        try {
+            const response = await fetch(API_URL);
+
+            if (!response.ok) {
+                throw new Error("Could not load notes");
+            }
+
+            const notes = await response.json();
+
+            const notesContainer = document.getElementById("notes");
+            notesContainer.innerHTML = "";
+
+            if (notes.length === 0) {
+                notesContainer.textContent = "No notes yet. Add your first note!";
+                return;
+            }
+
+            notes.forEach(note => {
+                const card = document.createElement("div");
+                card.className = "note";
+
+                const heading = document.createElement("h3");
+                heading.textContent = note.title;
+
+                const paragraph = document.createElement("p");
+                paragraph.textContent = note.content;
+
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Delete";
+                deleteButton.className = "delete-btn";
+                deleteButton.onclick = () => deleteNote(note.id);
+
+                card.append(heading, paragraph, deleteButton);
+                notesContainer.appendChild(card);
+            });
+
+        } catch (error) {
+            showMessage(error.message);
+        }
+    }
+
+    // Add a new note
+    async function addNote() {
+        const title = document.getElementById("title").value.trim();
+        const content = document.getElementById("content").value.trim();
+
+        if (!title || !content) {
+            showMessage("Please enter both title and content!");
+            return;
+        }
+
+        try {
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ title, content })
+            });
+
+            if (!response.ok) {
+                throw new Error("Could not add note");
+            }
+
+            document.getElementById("title").value = "";
+            document.getElementById("content").value = "";
+
+            showMessage("Note added successfully!");
+
+            loadNotes();
+
+        } catch (error) {
+            showMessage(error.message);
+        }
+    }
+
+    // Delete a note
+    async function deleteNote(id) {
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: "DELETE"
+            });
+
+            if (!response.ok) {
+                throw new Error("Could not delete note");
+            }
+
+            showMessage("Note deleted successfully!");
+            loadNotes();
+
+        } catch (error) {
+            showMessage(error.message);
+        }
+    }
+
+    function showMessage(message) {
+        document.getElementById("message").textContent = message;
+    }
+
+    // Load notes when page opens
+    loadNotes();
+</script>
+
+</body>
+</html>
